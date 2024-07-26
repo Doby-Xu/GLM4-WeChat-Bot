@@ -82,4 +82,4 @@ DefaultCPUAllocator: not enough memory: you tried to allocate xxxxxxxxx bytes.
 
 推荐使用LLAMA-Factory进行微调。
 
-如果你有24G显存，你可以进行LoRA微调。如果你只有16G显存，你可以进行量化的QLoRA微调
+如果有24G显存，可以进行LoRA微调。如果你只有16G显存，可以进行量化的QLoRA微调
