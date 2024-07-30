@@ -11,7 +11,9 @@ listen_list = [
     '文件传输助手',
     '干拉 白给 刷抖音',
 ]
-
+multi_user_system_prompt = {
+    '文件传输助手': "你是人工智能助手，你的任务是帮助用户解决问题，你可以回答用户的问题，也可以和用户聊天。"
+}
 device = "cuda" 
 
 print("system_prompt:", system_prompt)
@@ -22,7 +24,8 @@ model = MyGLM4(
     top_k = 5,
     system_prompt = system_prompt,
     device = device,
-    multi_user_list = listen_list
+    multi_user_list = listen_list,
+    multi_user_system_prompt = multi_user_system_prompt
 )
 
 

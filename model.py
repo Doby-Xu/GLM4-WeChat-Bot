@@ -13,7 +13,8 @@ class MyGLM4():
             top_k: int = 5,
             system_prompt = "你是一个人工智能助手，请认真回答下面的问题",
             device: str = "cuda" ,
-            multi_user_list: list = []
+            multi_user_list: list = [],
+            multi_user_system_prompt: dict = {}
             ) -> None:
         
         # Build model and tokenizer
@@ -40,7 +41,11 @@ class MyGLM4():
         if self.multi_user_flag:
             for user_id in multi_user_list:
                 self.list_memory[user_id] = []
-                self.list_memory[user_id].append({"role": "system", "content": system_prompt})
+                if user_id in multi_user_system_prompt:
+                    self.list_memory[user_id].append({"role": "system", "content": multi_user_system_prompt[user_id]})
+                    print("assign custom system prompt for user:", user_id)
+                else:
+                    self.list_memory[user_id].append({"role": "system", "content": system_prompt})
         else:
             self.list_memory = []
             self.list_memory.append({"role": "system", "content": system_prompt})
