@@ -2,6 +2,8 @@
 
 一个简单的调用GLM4的微信自动回复机器人。
 
+> 2024.8.3 更新：为微信机器人添加了多模态功能。
+
 ## 使用前，你需要...
 
 - have some knowledge about 中文. But since you are using WeChat, I assume you are a Chinese speaker or at least you can somehow read Chinese.
@@ -31,12 +33,12 @@
 ```shell
 DefaultCPUAllocator: not enough memory: you tried to allocate xxxxxxxxx bytes.
 ```
-那可能是C盘要爆了（当然也可能是内存真的不够）。你可以把C盘的glm4文件夹移动到当前文件夹下，然后把`model.py`中101行取消注释：
+那可能是C盘要爆了（当然也可能是内存真的不够）。你可以把C盘的glm4文件夹移动到当前文件夹下，然后把`model.py`中`main`函数中导入模型的`cache_dir`参数取消注释：
     
 ```python
     model = AutoModelForCausalLM.from_pretrained(
         "./glm-4-9b-chat",
-101 ===># cache_dir="D:\\LLM",
+    ===># cache_dir="D:\\LLM",
         # torch_dtype=torch.bfloat16,
         low_cpu_mem_usage=True,
         trust_remote_code=True,
@@ -44,6 +46,12 @@ DefaultCPUAllocator: not enough memory: you tried to allocate xxxxxxxxx bytes.
     ).eval()
 ```
 再次运行此文件，成功载入模型将其量化为int4。
+
+### 多模态模型
+
+支持多模态模型载入，请在`model.py`中做相应修改：
+- 将导入的模型从"THUDM/glm-4-9b-chat"更换为"THUDM/glm-4v-9b"，在代码中注释/取消注释即可
+- 修改模型存储路径为"glm-4-9b-chat-int4"
 
 
 ### 微信机器人
@@ -60,9 +68,16 @@ DefaultCPUAllocator: not enough memory: you tried to allocate xxxxxxxxx bytes.
     python autoWX.py
 ```
 
+将载入chat模型，如果你想载入多模态模型，请添加参数`--v`
+```shell
+    python autoWX.py --v
+```
+
+两个模型具体的区别请见[官方文档](https://github.com/THUDM/GLM-4/tree/main?tab=readme-ov-file)
+
 ### 个性化
 
-在`autoWX.py`的73行处，有大量if else语句，可以根据其示例，自行添加更多的回复规则，进行提示词工程等等。这里只是一个简单的示例，可以根据自己的需求，添加更多的回复规则。
+在`autoWX.py`中，有大量if else语句，可以根据其示例，自行添加更多的回复规则，进行提示词工程等等。这里只是一个简单的示例，可以根据自己的需求，添加更多的回复规则。
 
 ### GLM4聊天
 

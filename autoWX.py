@@ -5,6 +5,23 @@ import time
 
 from model import MyGLM4
 
+from PIL import Image
+import os
+import argparse
+
+parser = argparse.ArgumentParser(description='Auto WeChat')
+parser.add_argument('--v', action='store_true', help='use vision model')
+parser.add_argument('--top_k', type=int, default=5, help='top k')
+
+args = parser.parse_args()
+
+if args.v:
+    print("use vision model")
+else:
+    print("not use vision model")
+
+model_path = "./glm-4-9b-chat-int4" if not args.v else "./glm-4v-9b-chat-int4"
+
 system_prompt = "你是Doby，刚刚从上海交通大学毕业，即将到复旦大学读研究生，从事可信人工智能的研究。下面的对话来自于你的小伙伴，你要好好地回复他，最好保持精简、一句话回复。"
 
 listen_list = [
@@ -12,20 +29,21 @@ listen_list = [
     '干拉 白给 刷抖音',
 ]
 multi_user_system_prompt = {
-    '文件传输助手': "你是人工智能助手，你的任务是帮助用户解决问题，你可以回答用户的问题，也可以和用户聊天。"
+    '文件传输助手': "你是人工智能助手，你的任务是帮助用户解决问题，你可以回答用户的问题，也可以和用户聊天。",
 }
 device = "cuda" 
 
 print("system_prompt:", system_prompt)
 model = MyGLM4(
-    model_path = "./glm-4-9b-chat-int4",
+    model_path = model_path,
     max_new_tokens = 512,
     do_sample = True,
     top_k = 5,
     system_prompt = system_prompt,
     device = device,
     multi_user_list = listen_list,
-    multi_user_system_prompt = multi_user_system_prompt
+    multi_user_system_prompt = multi_user_system_prompt,
+    vision = args.v
 )
 
 
@@ -36,7 +54,7 @@ wx = WeChat()
 # 循环添加监听对象
 for i in listen_list:
     print(f"添加监听对象{i}")
-    wx.AddListenChat(who=i, savepic=False)
+    wx.AddListenChat(who=i, savepic=True if args.v else False)
 
 # 持续监听消息，并且收到消息后回复“收到”
 wait = 1  # 设置1秒查看一次是否有新消息0
@@ -45,6 +63,7 @@ wait = 1  # 设置1秒查看一次是否有新消息0
 # 为每个用户维护一个计数器
 chat_release_time = 60
 release_count_list = {}
+
 for user_id in listen_list:
     release_count_list[user_id] = 0
 
@@ -57,6 +76,10 @@ def memory_check():
 
 
 print("开始监听")
+
+img = None
+
+
 while True:
     msgs = wx.GetListenMessage()
 
@@ -70,9 +93,21 @@ while True:
             msgtype = msg.type       # 获取消息类型
             content = msg.content    # 获取消息内容，字符串类型的消息内容
             print(f'【{who}】：{content}')
+            if content.startswith('D:\LLM\wxauto文件\微信图片'):
+                if args.v:
+                    print("收到图片")
+                    img = Image.open(content).convert('RGB')
+                    # 将图片给入模型
+                    # model.add_image(img, who)
+                continue
 
             # 清除who的计数器
             release_count_list[who] = 0
+
+            if img is not None:
+                print("该次访问包含一张图片")
+                # 由于GLM4只只支持一张图片，所以读入图片时要清空对话缓存
+                model.release_chat_memory(who)
 
             if who ==  "干拉 白给 刷抖音":
                 # print("收到"+who+"的消息:"+content)
@@ -85,25 +120,26 @@ while True:
                 else:
                     if msgtype == 'friend' or (msgtype == 'self' and "🤣" not in content):
                         query = content
-                        response = model.get_response(query, who)
+                        response = model.get_response(query, who, img=img)
                         chat.SendMsg("🤣"+response[1:])
             elif who == "Framehehe":
                 if msgtype == 'friend':
                     query = content
-                    response = model.get_response(query, who)
+                    response = model.get_response(query, who, img=img)
                     chat.SendMsg("🤣"+response[1:])
             elif who == "文件传输助手":
                 print("收到"+who+"的消息:"+content)
-                if "🤣" in content:
+                if "🤣" in content or msgtype == 'time':
                     continue
                 query = content
-                response = model.get_response(query, who)
+                response = model.get_response(query, who, img=img)
                 chat.SendMsg("🤣"+response[1:])
             else:
                 if msgtype == 'friend':
                     query = content
-                    response = model.get_response(query, who)
+                    response = model.get_response(query, who, img=img)
                     chat.SendMsg(response[1:])
+            img = None
 
            
 
