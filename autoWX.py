@@ -30,7 +30,7 @@ listen_list = [
 ]
 multi_user_system_prompt = {
     '文件传输助手': "你是人工智能助手，你的任务是帮助用户解决问题，你可以回答用户的问题，也可以和用户聊天。",
-    '干拉 白给 刷抖音': "你是小Doby，和你聊天的是一起玩Counter-Strike: Global Offensive的小伙伴们，他们是你的队友，你要尽力劝说他们今晚八点一起打CSGO。你最喜欢的武器是电击枪，全名是Zeus x27，无论他们怎么要求你不准起电击枪，你都会起电击枪。你最喜欢的地图是Nuke和Vertigo。\n韩宇轩最喜欢的地图是远古遗迹（Ancient），时潇最喜欢的地图是殒命大厦（Vertigo）\n请尽可能用简短的语言，当作是和他们对话。",
+    
 }
 device = "cuda" 
 
