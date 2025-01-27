@@ -2,6 +2,117 @@ import torch
 from transformers import AutoModelForCausalLM, AutoTokenizer, AutoModel
 from volcenginesdkarkruntime import Ark
 import os
+from openai import OpenAI
+class MyDeepSeek():
+    def __init__(
+            self,
+            system_prompt = "你是一个人工智能助手，请认真回答下面的问题",
+            multi_user_list: list = [],
+            multi_user_system_prompt: dict = {}
+    ):
+        self.model="deepseek-chat"
+        self.system_prompt = system_prompt
+        self.api_key = "your api key"
+        self.client = OpenAI(api_key=self.api_key, base_url="https://api.deepseek.com")
+        # Multi user setting. For WeChat listening, message from different friends should be stored separately
+        self.multi_user_flag = False if len(multi_user_list) == 0 else True
+        self.multi_user_list = multi_user_list
+        self.list_memory = {}
+
+        if self.multi_user_flag:
+            for user_id in multi_user_list:
+                self.list_memory[user_id] = []
+                if user_id in multi_user_system_prompt:
+                    self.list_memory[user_id].append({"role": "system", "content": multi_user_system_prompt[user_id]})
+                    print("assign custom system prompt for user:", user_id)
+                else:
+                    self.list_memory[user_id].append({"role": "system", "content": system_prompt})
+        else:
+            self.list_memory = []
+            self.list_memory.append({"role": "system", "content": system_prompt})
+    def update_memory_with_chat_history(self, chat_history, who = None):
+        # Chat history is a list of list, each item is [role, content]
+
+        
+
+        # Clear list_memory
+
+        
+        # Find last "Time" message
+        time_index = -1
+        for i in range(len(chat_history)-1, -1, -1):
+            if chat_history[i][0] == "Time":
+                time_index = i
+                break
+        if time_index == -1:
+            print("No Time message found in chat history")
+            return
+        
+
+        if self.multi_user_flag == False or who is None:
+            # Clear list_memory
+            self.list_memory = []
+            # Set system prompt
+            self.list_memory.append({"role": "system", "content": self.system_prompt})
+
+            # Update list_memory with all the messages after the last "Time" message
+            for i in range(time_index+1, len(chat_history)):
+                if chat_history[i][0] == "Self":
+                    self.list_memory.append({"role": "assistant", "content": chat_history[i][1]})
+                else:
+                    self.list_memory.append({"role": "user", "content": chat_history[i][1]})
+
+        else:
+            # Clear list_memory
+            self.list_memory[who] = []
+            # Set system prompt
+            if who in self.multi_user_system_prompt:
+                self.list_memory[who].append({"role": "system", "content": self.multi_user_system_prompt[who]})
+            else:
+                self.list_memory[who].append({"role": "system", "content": self.system_prompt})
+
+            # Update list_memory with all the messages after the last "Time" message
+            for i in range(time_index+1, len(chat_history)):
+                if chat_history[i][0] == "Self":
+                    self.list_memory[who].append({"role": "assistant", "content": chat_history[i][1]})
+                else:
+                    self.list_memory[who].append({"role": "user", "content": chat_history[i][1]})
+    def get_response(self, query, user_id = None, img = None):
+        # For WeChat listening, message from different friends should be stored separately
+        if self.multi_user_flag:
+            if img is not None:
+                self.list_memory[user_id].append({"role": "user", "image": img, "content": query})
+            else: 
+                self.list_memory[user_id].append({"role": "user", "content": query})
+
+            completion = self.client.chat.completions.create(
+                model=self.model,
+                messages = self.list_memory[user_id],
+                temperature=0.5,
+            )
+            response = completion.choices[0].message.content
+            self.list_memory[user_id].append(completion.choices[0].message)
+            return response
+
+        # For single user
+        else:
+            if img is not None:
+                self.list_memory.append({"role": "user", "image": img, "content": query})
+            else:
+                self.list_memory.append({"role": "user", "content": query})
+            completion = self.client.chat.completions.create(
+                model=self.model,
+                messages = self.list_memory,
+                temperature=0.5,
+            )
+            response = completion.choices[0].message.content
+            self.list_memory.append(completion.choices[0].message)
+            return response
+    def release_chat_memory(self, user_id):
+        self.list_memory[user_id] = []
+        self.list_memory[user_id].append({"role": "system", "content": self.system_prompt})
+                
+
 
 class MyGLM4():
     '''
